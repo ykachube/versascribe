@@ -1,0 +1,64 @@
+{
+  "$schema": "versascribe/transcript/v1",
+  "id": "20240315_143022_team-standup",
+  "version": 1,
+  "created_at": "2024-03-15T14:30:22+00:00",
+  "updated_at": "2024-03-15T14:45:10+00:00",
+  "source": {
+    "type": "recording",
+    "original_filename": null,
+    "audio_file": "audio/20240315_143022_team-standup.wav",
+    "duration_seconds": 1247.3,
+    "audio_device": "BlackHole 2ch",
+    "sample_rate": 16000,
+    "channels": 1
+  },
+  "metadata": {
+    "title": "Team Standup",
+    "project": ["backend-api"],
+    "participants": ["Alice", "Bob", "Carol"],
+    "tags": ["standup", "sprint-12"],
+    "language": "en",
+    "whisper_model": "base"
+  },
+  "transcription": {
+    "engine": "faster-whisper",
+    "model_size": "base",
+    "language_detected": "en",
+    "language_probability": 0.99,
+    "segments": [
+      {
+        "id": 0,
+        "start": 0.0,
+        "end": 3.4,
+        "text": " Hello everyone, let's get started.",
+        "avg_logprob": -0.23,
+        "compression_ratio": 1.12,
+        "no_speech_prob": 0.01,
+        "words": null
+      },
+      {
+        "id": 1,
+        "start": 3.5,
+        "end": 8.2,
+        "text": " I've been working on the API latency issue.",
+        "avg_logprob": -0.18,
+        "compression_ratio": 1.05,
+        "no_speech_prob": 0.02,
+        "words": null
+      },
+      {
+        "id": 2,
+        "start": 8.3,
+        "end": 15.0,
+        "text": " We need to fix the regression by Thursday.",
+        "avg_logprob": -0.21,
+        "compression_ratio": 1.08,
+        "no_speech_prob": 0.01,
+        "words": null
+      }
+    ],
+    "full_text": "Hello everyone, let's get started. I've been working on the API latency issue. We need to fix the regression by Thursday."
+  },
+  "analysis": {}
+}
