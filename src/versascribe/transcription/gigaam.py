@@ -71,10 +71,10 @@ def _diarize_with_pyannote(audio_path: Path, hf_token: str, num_speakers: Option
     from pyannote.audio import Pipeline
 
     os.environ["HF_TOKEN"] = hf_token
-    pipeline = Pipeline.from_pretrained(
-        "pyannote/speaker-diarization-3.1",
-        token=hf_token,
-    )
+    # Set env var so hf_hub_download picks it up automatically.
+    # Avoid passing use_auth_token/token directly: pyannote and huggingface_hub
+    # keep renaming the parameter across versions.
+    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1")
     kwargs: dict = {}
     if num_speakers is not None:
         kwargs["num_speakers"] = num_speakers
