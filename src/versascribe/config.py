@@ -19,6 +19,8 @@ VALID_KEYS = {
     "word_timestamps",
     "hf_token",
     "diarize_by_default",
+    "transcription_backend",
+    "gigaam_model",
 }
 
 
@@ -33,6 +35,8 @@ class AppConfig(BaseModel):
     word_timestamps: bool = False
     hf_token: Optional[str] = None
     diarize_by_default: bool = False
+    transcription_backend: str = "whisper"
+    gigaam_model: str = "v3_e2e_rnnt"
 
     @property
     def storage_dir(self) -> Path:

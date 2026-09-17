@@ -20,7 +20,10 @@ vs record --title "Long Call" --no-transcribe
 # Use a specific Whisper model for this session
 vs record --title "Board Meeting" --model large-v3
 
-# Force transcription language (skip auto-detection)
+# Use GigaAM backend (better for Russian; requires versascribe[gigaam])
+vs record --title "Team Sync" --backend gigaam
+
+# Force transcription language (skip auto-detection, Whisper only)
 vs record --language en
 
 # Enable word-level timestamps
@@ -43,6 +46,9 @@ Accepts `.mp3`, `.mp4`, `.m4a`, `.mov`, `.mkv`, `.wav`, `.webm`, `.aac`, `.flac`
 vs import recording.mp4
 vs import zoom_meeting.m4a --title "Client Review" --participant "Sarah" --project acme
 vs import interview.mp3 --language en --model small
+
+# With GigaAM backend
+vs import meeting.mp4 --backend gigaam
 
 # With speaker diarization
 vs import podcast.mp3 --diarize --num-speakers 3
@@ -80,6 +86,9 @@ vs show 20240315_143022_team-standup
 # With timestamps
 vs show 20240315_143022_team-standup --timestamps
 
+# With timestamps and speaker names (if diarized and mapped)
+vs show 20240315_143022_team-standup --timestamps
+
 # Individual segments with start/end times
 vs show 20240315_143022_team-standup --format segments
 
@@ -89,6 +98,8 @@ vs show 20240315_143022_team-standup --format json
 # Show the MoM (if generated)
 vs show 20240315_143022_team-standup --mom
 ```
+
+When a transcript was recorded with `--diarize`, speaker labels (`SPEAKER_00`, `SPEAKER_01`, …) appear automatically grouped above their segments. Map labels to real names with `vs tag --map-speaker` (see [Tagging and editing metadata](#tagging-and-editing-metadata)).
 
 You can use a **prefix** of the ID — as long as it's unambiguous:
 
@@ -127,6 +138,19 @@ vs tag 20240315_143022_team-standup --add-participant "David"
 
 # Rename the meeting
 vs tag 20240315_143022_team-standup --title "Sprint 15 Standup"
+
+# Map diarization speaker labels to real names
+vs tag 20240315_143022_team-standup --map-speaker "SPEAKER_00=Alice" --map-speaker "SPEAKER_01=Bob"
+```
+
+After mapping, `vs show --timestamps` displays names instead of `SPEAKER_00`:
+
+```
+Alice
+[00:00] Hello everyone, let's get started.
+
+Bob
+[00:08] Thanks. I'll walk through the agenda.
 ```
 
 ---
@@ -221,8 +245,59 @@ vs config --show-path
 | `blackhole_device` | `BlackHole 2ch` | Audio device name for recording |
 | `storage_path` | `~/.versascribe` | Where transcripts and audio are stored |
 | `word_timestamps` | `false` | Enable word-level timestamps by default |
-| `hf_token` | _(none)_ | HuggingFace token for speaker diarization |
+| `hf_token` | _(none)_ | HuggingFace token for speaker diarization and GigaAM long-form |
 | `diarize_by_default` | `false` | Always run speaker diarization |
+| `transcription_backend` | `whisper` | Transcription engine: `whisper` or `gigaam` |
+| `gigaam_model` | `v3_e2e_rnnt` | GigaAM model: `v3_e2e_rnnt`, `v3_e2e_ctc`, `multilingual_ctc`, `multilingual_large_ctc` (see docs/SETUP.md) |
+
+---
+
+## Replay mode
+
+Replay mode opens an interactive TUI for a recorded meeting. Launch it with any transcript ID:
+
+```bash
+vs replay 20240315_143022_team-standup
+vs replay 20240315   # prefix is fine
+```
+
+### Layout
+
+```
+┌─ Replay  Team Standup ─────────────────── VersaScribe ──────────────┐
+│ 2026-09-16 12:09  |  0m 16s  |  4 seg  |  backend  |  audio ✓      │
+├──────┬──────────────────┬─────────────────────────────┬─────────────┤
+│ Time │ Speaker          │ Transcript                  │ Note        │
+├──────┼──────────────────┼─────────────────────────────┼─────────────┤
+│▶0:00 │ Alice            │ Hello everyone.             │             │
+│ 0:05 │ Bob              │ Let's get started.          │ ✎ key point │
+│ 0:08 │ Alice            │ First item on the agenda…   │             │
+├──────┴──────────────────┴─────────────────────────────┴─────────────┤
+│ Q Quit & Save  Space Play/Pause  E Edit text  S Speaker  N Note     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key bindings
+
+| Key | Action |
+|---|---|
+| `↑` / `↓` or `k` / `j` | Navigate segments |
+| `Space` | Play audio from the selected segment / Pause |
+| `E` | Edit segment text inline |
+| `S` | Assign a speaker name to this segment's label |
+| `N` | Add or edit a sidenote on this segment |
+| `Q` | Quit and save all changes |
+| `Esc` | Cancel an open dialog without saving |
+
+### How speaker assignment works
+
+When a transcript was diarized, each segment has a label like `SPEAKER_00`. Pressing `S` lets you map that label to a real name (e.g. `Alice`). The mapping applies to **all** segments with that label and is saved back to the transcript — the same as running `vs tag --map-speaker "SPEAKER_00=Alice"` but without leaving the TUI.
+
+For non-diarized transcripts, `S` sets a speaker name directly on the individual segment.
+
+### Sidenotes
+
+Press `N` to attach a free-text note to any segment. Notes are stored in the transcript JSON and shown in `vs show` with a ✎ prefix. Leave the field blank to clear an existing note.
 
 ---
 

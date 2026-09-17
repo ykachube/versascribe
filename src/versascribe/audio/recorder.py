@@ -18,12 +18,12 @@ class AudioRecorder:
     """
 
     SAMPLE_RATE = 16000
-    CHANNELS = 1
     BLOCK_SIZE = 4096  # ~256 ms chunks
 
     def __init__(self, wav_path: Path, device: int | str) -> None:
         self._wav_path = wav_path
         self._device = device
+        self._input_channels: int = 1
         self._q: queue.Queue = queue.Queue(maxsize=512)
         self._stop_event = threading.Event()
         self._peak: float = 0.0
@@ -49,6 +49,9 @@ class AudioRecorder:
     def start(self) -> None:
         import sounddevice as sd
 
+        device_info = sd.query_devices(self._device, "input")
+        self._input_channels = max(1, int(device_info["max_input_channels"]))
+
         self._writer_thread = threading.Thread(
             target=self._writer_worker, daemon=True
         )
@@ -57,7 +60,7 @@ class AudioRecorder:
         self._stream = sd.InputStream(
             device=self._device,
             samplerate=self.SAMPLE_RATE,
-            channels=self.CHANNELS,
+            channels=self._input_channels,
             dtype="float32",
             blocksize=self.BLOCK_SIZE,
             callback=self._audio_callback,
@@ -79,7 +82,12 @@ class AudioRecorder:
     def _audio_callback(self, indata, frames, time_info, status) -> None:
         import numpy as np
 
-        frame = indata.copy()
+        # Mix all input channels to mono so Aggregate Devices (mic + BlackHole)
+        # are captured correctly regardless of channel count.
+        if indata.shape[1] > 1:
+            frame = np.mean(indata, axis=1, keepdims=True)
+        else:
+            frame = indata.copy()
         self._peak = float(np.max(np.abs(frame)))
         try:
             self._q.put_nowait(frame)
@@ -93,7 +101,7 @@ class AudioRecorder:
             str(self._wav_path),
             mode="w",
             samplerate=self.SAMPLE_RATE,
-            channels=self.CHANNELS,
+            channels=1,
             subtype="PCM_16",
         ) as f:
             while not self._stop_event.is_set() or not self._q.empty():

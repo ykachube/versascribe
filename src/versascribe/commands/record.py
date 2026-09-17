@@ -7,12 +7,12 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 import typer
-from rich.prompt import Prompt
 
 from versascribe.audio.devices import find_device, list_devices
 from versascribe.audio.recorder import AudioRecorder
 from versascribe.context import get_config
 from versascribe.display import console, make_recording_live, success, transcription_progress
+from versascribe.prompts import prompt_metadata
 from versascribe.storage.paths import new_audio_path, new_transcript_path
 from versascribe.storage.transcript import (
     AnalysisBlock,
@@ -32,6 +32,7 @@ def record(
     tag: List[str] = typer.Option([], "--tag", help="Tag (repeatable)"),
     device: Optional[str] = typer.Option(None, "--device", help="Audio device name"),
     model: Optional[str] = typer.Option(None, "--model", help="Whisper model size"),
+    backend: Optional[str] = typer.Option(None, "--backend", help="Transcription backend: whisper or gigaam"),
     word_timestamps: bool = typer.Option(False, "--word-timestamps", help="Enable word-level timestamps"),
     no_transcribe: bool = typer.Option(False, "--no-transcribe", help="Save audio only, skip transcription"),
     language: Optional[str] = typer.Option(None, "--language", help="Force transcription language"),
@@ -53,7 +54,19 @@ def record(
     model_size = model or config.whisper_model
     wt = word_timestamps or config.word_timestamps
 
-    if not title:
+    # Full wizard when no metadata flags are provided; single title prompt otherwise.
+    if not title and not project and not participant and not tag:
+        info = prompt_metadata(
+            default_title="Untitled Meeting",
+            show_diarize=not diarize and bool(config.hf_token),
+        )
+        title = info["title"]
+        project = list(info["project"])
+        participant = list(info["participant"])
+        tag = list(info["tag"])
+        if not diarize:
+            diarize = info["diarize"]
+    elif not title:
         title = Prompt.ask("[bold]Meeting title[/bold]", default="Untitled Meeting")
 
     now = datetime.now(timezone.utc)
@@ -94,16 +107,22 @@ def record(
         console.print(f"[bold]Audio saved:[/bold] {wav_path}")
         return
 
+    effective_backend = backend or config.transcription_backend
     with transcription_progress() as progress:
-        task_id = progress.add_task(f"Transcribing with Whisper [{model_size}]…", total=None)
-        from versascribe.transcription.whisper import transcribe_audio
-        should_diarize = diarize or config.diarize_by_default
-        result = transcribe_audio(
-            wav_path, model_size, wt, language,
-            diarize=should_diarize,
-            hf_token=config.hf_token,
-            num_speakers=num_speakers,
-        )
+        if effective_backend == "gigaam":
+            from versascribe.transcription.gigaam import transcribe_audio_gigaam
+            task_id = progress.add_task(f"Transcribing with GigaAM [{config.gigaam_model}]…", total=None)
+            result = transcribe_audio_gigaam(wav_path, config.gigaam_model, wt, config.hf_token)
+        else:
+            from versascribe.transcription.whisper import transcribe_audio
+            task_id = progress.add_task(f"Transcribing with Whisper [{model_size}]…", total=None)
+            should_diarize = diarize or config.diarize_by_default
+            result = transcribe_audio(
+                wav_path, model_size, wt, language,
+                diarize=should_diarize,
+                hf_token=config.hf_token,
+                num_speakers=num_speakers,
+            )
         progress.update(task_id, completed=True)
 
     transcript_path = new_transcript_path(config.storage_dir, title, now)

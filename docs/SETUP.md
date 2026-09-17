@@ -116,6 +116,16 @@ The model (~1 GB) downloads automatically on first diarized transcription.
 vs config --set diarize_by_default=true
 ```
 
+### 5. Map speaker labels to names
+
+Diarization labels speakers anonymously (`SPEAKER_00`, `SPEAKER_01`, …). After recording, map them to real names:
+
+```bash
+vs tag <id> --map-speaker "SPEAKER_00=Alice" --map-speaker "SPEAKER_01=Bob"
+```
+
+The mapping is stored in the transcript. `vs show --timestamps` then displays names instead of labels.
+
 ### Whisper model sizes
 
 | Model | Size | Speed (CPU) | Quality |
@@ -127,6 +137,65 @@ vs config --set diarize_by_default=true
 | large-v3 | 1.5 GB | Very slow | Best available |
 
 Models are downloaded automatically on first use from HuggingFace and cached at `~/.cache/huggingface/hub/`.
+
+---
+
+## GigaAM transcription backend (optional)
+
+[GigaAM](https://github.com/salute-developers/GigaAM) is a Conformer-based ASR model from Sber with state-of-the-art quality on Russian. Use it instead of Whisper when your meetings are primarily in Russian or other CIS languages.
+
+Available model variants:
+
+| Model | Languages | Notes |
+|---|---|---|
+| `v3_e2e_rnnt` | Russian | Best quality, with punctuation (default) |
+| `v3_e2e_ctc` | Russian | CTC alternative, with punctuation |
+| `v3_rnnt` / `v3_ctc` | Russian | Without built-in punctuation |
+| `multilingual_ctc` | 70+ languages | Best for mixed-language meetings |
+| `multilingual_large_ctc` | 70+ languages | Higher accuracy, ~1.2 GB |
+
+Short aliases `rnnt` and `ctc` resolve to `v3_rnnt` and `v3_ctc` respectively.
+
+### 1. Install the gigaam extra
+
+The PyPI release only covers v1/v2 models. Install from the GitHub source to get v3 and multilingual:
+
+```bash
+pip install 'versascribe[gigaam]'
+```
+
+This installs gigaam from the GitHub repo and PyTorch (CPU-only on macOS, ~200 MB).
+
+> **NumPy compatibility:** PyTorch 2.x requires `numpy<2`. If you have NumPy 2.x installed, downgrade it:
+> ```bash
+> pip install "numpy<2"
+> ```
+
+### 2. Set a HuggingFace token
+
+GigaAM's long-form transcription uses `pyannote/segmentation-3.0` for voice activity detection — the same token as speaker diarization.
+
+If you already set `hf_token` for diarization, no further action is needed.
+
+Otherwise:
+1. Create a free account at <https://huggingface.co>
+2. Generate a token at <https://hf.co/settings/tokens>
+3. Accept model terms at <https://hf.co/pyannote/segmentation-3.0>
+4. `vs config --set hf_token=hf_xxxxxxxxxxxxxxxx`
+
+Without an HF token, GigaAM falls back to single-chunk transcription (no segment timing), which works poorly for anything longer than a minute.
+
+### 3. Enable GigaAM
+
+```bash
+# Use as default backend
+vs config --set transcription_backend=gigaam
+
+# Or switch model (v3_e2e_rnnt is default)
+vs config --set gigaam_model=multilingual_ctc
+```
+
+Models are downloaded automatically on first use and cached at `~/.cache/huggingface/hub/`.
 
 ---
 

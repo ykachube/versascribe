@@ -11,6 +11,7 @@ import typer
 from versascribe.audio.extractor import extract_to_wav, needs_extraction
 from versascribe.context import get_config
 from versascribe.display import console, success, transcription_progress
+from versascribe.prompts import prompt_metadata
 from versascribe.storage.paths import new_transcript_path
 from versascribe.storage.transcript import (
     AnalysisBlock,
@@ -32,6 +33,7 @@ def import_file(
     participant: List[str] = typer.Option([], "--participant", help="Participant name (repeatable)"),
     tag: List[str] = typer.Option([], "--tag", help="Tag (repeatable)"),
     model: Optional[str] = typer.Option(None, "--model", help="Whisper model size"),
+    backend: Optional[str] = typer.Option(None, "--backend", help="Transcription backend: whisper or gigaam"),
     language: Optional[str] = typer.Option(None, "--language", help="Force transcription language"),
     word_timestamps: bool = typer.Option(False, "--word-timestamps", help="Enable word-level timestamps"),
     diarize: bool = typer.Option(False, "--diarize", help="Identify speakers (requires whisperx + HF token)"),
@@ -50,7 +52,23 @@ def import_file(
     config = get_config(ctx)
     model_size = model or config.whisper_model
     wt = word_timestamps or config.word_timestamps
-    meeting_title = title or path.stem.replace("_", " ").replace("-", " ").title()
+    default_title = path.stem.replace("_", " ").replace("-", " ").title()
+
+    # Full wizard when no metadata flags are provided.
+    if not title and not project and not participant and not tag:
+        info = prompt_metadata(
+            default_title=default_title,
+            show_diarize=not diarize and bool(config.hf_token),
+        )
+        meeting_title = info["title"]
+        project = list(info["project"])
+        participant = list(info["participant"])
+        tag = list(info["tag"])
+        if not diarize:
+            diarize = info["diarize"]
+    else:
+        meeting_title = title or default_title
+
     now = datetime.now(timezone.utc)
     tmp_dir = config.storage_dir / "tmp"
     tmp_dir.mkdir(exist_ok=True)
@@ -69,16 +87,22 @@ def import_file(
     except Exception:
         duration_seconds = 0.0
 
+    effective_backend = backend or config.transcription_backend
     with transcription_progress() as progress:
-        task_id = progress.add_task(f"Transcribing with Whisper [{model_size}]…", total=None)
-        from versascribe.transcription.whisper import transcribe_audio
-        should_diarize = diarize or config.diarize_by_default
-        result = transcribe_audio(
-            wav_path, model_size, wt, language,
-            diarize=should_diarize,
-            hf_token=config.hf_token,
-            num_speakers=num_speakers,
-        )
+        if effective_backend == "gigaam":
+            from versascribe.transcription.gigaam import transcribe_audio_gigaam
+            task_id = progress.add_task(f"Transcribing with GigaAM [{config.gigaam_model}]…", total=None)
+            result = transcribe_audio_gigaam(wav_path, config.gigaam_model, wt, config.hf_token)
+        else:
+            from versascribe.transcription.whisper import transcribe_audio
+            task_id = progress.add_task(f"Transcribing with Whisper [{model_size}]…", total=None)
+            should_diarize = diarize or config.diarize_by_default
+            result = transcribe_audio(
+                wav_path, model_size, wt, language,
+                diarize=should_diarize,
+                hf_token=config.hf_token,
+                num_speakers=num_speakers,
+            )
         progress.update(task_id, completed=True)
 
     if extracted:
