@@ -36,7 +36,10 @@ def replay(
         if not index:
             console.print("[yellow]No transcripts found.[/yellow]")
             raise typer.Exit()
-        latest = max(index, key=lambda e: e.created_at)
+        from datetime import timezone
+        def _as_utc(dt):
+            return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+        latest = max(index, key=lambda e: _as_utc(e.created_at))
         path = latest.path
     else:
         try:
