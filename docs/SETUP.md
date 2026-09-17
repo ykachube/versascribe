@@ -200,6 +200,15 @@ vs config --set gigaam_model=multilingual_ctc
 
 Models are downloaded automatically on first use and cached at `~/.cache/huggingface/hub/`.
 
+### Performance note
+
+GigaAM transcription (without diarization) takes roughly **1–2 minutes per 5 minutes of audio** on a modern Intel CPU, which is acceptable for post-meeting processing.
+
+Speaker diarization (`--diarize`) adds the pyannote embedding pipeline on top and is **significantly slower on CPU** — expect 5–7× real-time (e.g. ~25 minutes for a 4-minute recording). This is a hardware limitation of running the WeSpeaker embedding model on CPU, not a software issue. Practical workarounds:
+
+- Transcribe without `--diarize`, then assign speakers manually in `vs replay` (press `S` on a segment)
+- Run `vs import --diarize` as a background task after the meeting and come back to it later
+
 ---
 
 ## Verify the setup
