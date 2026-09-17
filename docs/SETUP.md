@@ -99,7 +99,7 @@ This pulls in [WhisperX](https://github.com/m-bain/whisperX) and PyTorch (~2 GB 
 > pip install "transformers<4.45"
 > ```
 
-> **Dual OpenMP crash (SIGSEGV/EXC_BAD_ACCESS):** PyTorch and faster-whisper (ctranslate2) each bundle their own `libiomp5.dylib`. When both are loaded in the same process, two OpenMP runtimes conflict and crash. VersaScribe sets `KMP_DUPLICATE_LIB_OK=TRUE` automatically before loading either library, so this should not require any manual workaround.
+> **Dual OpenMP crash (SIGSEGV/EXC_BAD_ACCESS):** PyTorch and faster-whisper (ctranslate2) each bundle their own `libiomp5.dylib`. Two runtimes in the same process crash when their thread pools try to synchronise across each other's structures. VersaScribe sets `KMP_DUPLICATE_LIB_OK=TRUE` and `OMP_NUM_THREADS=1` automatically before either library loads, which prevents the crash. Transcription is single-threaded as a result, but there is no practical speed regression on CPU hardware where parallelism is already limited.
 
 ### 2. Get a HuggingFace token
 
