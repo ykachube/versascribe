@@ -135,7 +135,11 @@ def _transcribe_with_diarization(
     )
 
     # Step 3: diarize
-    diarize_model = whisperx.DiarizationPipeline(use_auth_token=hf_token, device=device)
+    # Set HF_TOKEN env var so pyannote/hf_hub_download picks it up;
+    # avoid use_auth_token= which was removed in recent huggingface_hub.
+    import os
+    os.environ["HF_TOKEN"] = hf_token
+    diarize_model = whisperx.DiarizationPipeline(device=device)
     kwargs = {}
     if num_speakers:
         kwargs["min_speakers"] = num_speakers
