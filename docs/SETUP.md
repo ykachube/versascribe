@@ -166,7 +166,7 @@ pip install 'versascribe[gigaam]'
 
 This installs gigaam from GitHub, PyTorch (≥2.0), and pyannote.audio for long-form VAD segmentation.
 
-> **Corporate pip mirrors:** If your mirror caps at torch 2.2.2, that is fine — the `[gigaam]` extra requires only `torch>=2.0.0`. VersaScribe includes a compatibility shim that patches a missing API (`torch.serialization.safe_globals`) introduced in torch 2.4, so 2.2.x works without issue.
+> **Older PyTorch / corporate mirrors:** The `[gigaam]` extra requires only `torch>=2.0.0`, so torch 2.2.x (the maximum on many corporate pip mirrors) works fine. VersaScribe patches two upstream incompatibilities at runtime: the `torch.serialization.safe_globals` API absent before torch 2.4, and a gigaam/pyannote.audio path-handling mismatch introduced in pyannote 3.x. No manual workarounds are needed.
 
 > **NumPy compatibility:** PyTorch 2.x requires `numpy<2`. The `[gigaam]` extra pins `numpy<2` automatically. If you already have NumPy 2.x installed, downgrade it:
 > ```bash

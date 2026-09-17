@@ -23,6 +23,34 @@ def _patch_torch_compat() -> None:
         _ts.safe_globals = _safe_globals  # type: ignore[attr-defined]
 
 
+def _patch_gigaam_vad() -> None:
+    """Fix gigaam's load_segmentation_model for pyannote>=3.1.
+
+    gigaam passes the snapshot directory to Model.from_pretrained, but pyannote
+    only accepts a file path or a HF repo ID — never a directory.  Pass
+    pytorch_model.bin from inside the snapshot instead.
+    """
+    import os
+    import gigaam.vad_utils as _vad
+    from pyannote.audio import Model
+
+    _orig = _vad.load_segmentation_model
+
+    def _patched(model_id: str) -> Model:
+        import torch.serialization as _ts
+        local_dir = _vad.resolve_local_segmentation_path(model_id)
+        checkpoint = os.path.join(local_dir, "pytorch_model.bin")
+        if not os.path.isfile(checkpoint):
+            raise FileNotFoundError(
+                f"pytorch_model.bin not found in snapshot {local_dir}. "
+                "Try clearing the HuggingFace cache and re-running."
+            )
+        with _ts.safe_globals([]):
+            return Model.from_pretrained(checkpoint)
+
+    _vad.load_segmentation_model = _patched
+
+
 def get_model(model_name: str):
     if model_name not in _model_cache:
         try:
@@ -33,6 +61,7 @@ def get_model(model_name: str):
                 "Install with: pip install 'versascribe[gigaam]'"
             )
         _patch_torch_compat()
+        _patch_gigaam_vad()
         _model_cache[model_name] = gigaam.load_model(model_name)
     return _model_cache[model_name]
 
