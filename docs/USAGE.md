@@ -319,6 +319,14 @@ vs delete 20240315_143022_team-standup --yes
 
 # Delete JSON but keep the WAV file
 vs delete 20240315_143022_team-standup --keep-audio
+
+# Bulk delete by tag — shows matching list, asks once
+vs delete --tag sprint-14
+vs delete --tag sprint-14 --yes          # skip confirmation
+vs delete --tag sprint-14 --keep-audio   # keep WAV files
+
+# Multiple tags (deletes transcripts that have ANY of them)
+vs delete --tag sprint-14 --tag draft
 ```
 
 ---
