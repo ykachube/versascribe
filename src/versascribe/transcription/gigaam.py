@@ -73,7 +73,7 @@ def _diarize_with_pyannote(audio_path: Path, hf_token: str, num_speakers: Option
     os.environ["HF_TOKEN"] = hf_token
     pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        use_auth_token=hf_token,
+        token=hf_token,
     )
     kwargs: dict = {}
     if num_speakers is not None:
