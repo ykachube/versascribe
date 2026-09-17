@@ -158,15 +158,17 @@ Short aliases `rnnt` and `ctc` resolve to `v3_rnnt` and `v3_ctc` respectively.
 
 ### 1. Install the gigaam extra
 
-The PyPI release only covers v1/v2 models. Install from the GitHub source to get v3 and multilingual:
+The PyPI release only covers v1/v2 models. VersaScribe pulls gigaam directly from the GitHub repo to get v3 and multilingual:
 
 ```bash
 pip install 'versascribe[gigaam]'
 ```
 
-This installs gigaam from the GitHub repo and PyTorch (CPU-only on macOS, ~200 MB).
+This installs gigaam from GitHub, PyTorch (≥2.0), and pyannote.audio for long-form VAD segmentation.
 
-> **NumPy compatibility:** PyTorch 2.x requires `numpy<2`. If you have NumPy 2.x installed, downgrade it:
+> **Corporate pip mirrors:** If your mirror caps at torch 2.2.2, that is fine — the `[gigaam]` extra requires only `torch>=2.0.0`. VersaScribe includes a compatibility shim that patches a missing API (`torch.serialization.safe_globals`) introduced in torch 2.4, so 2.2.x works without issue.
+
+> **NumPy compatibility:** PyTorch 2.x requires `numpy<2`. The `[gigaam]` extra pins `numpy<2` automatically. If you already have NumPy 2.x installed, downgrade it:
 > ```bash
 > pip install "numpy<2"
 > ```

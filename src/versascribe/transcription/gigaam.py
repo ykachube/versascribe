@@ -12,6 +12,17 @@ from versascribe.transcription.whisper import TranscriptionResult
 _model_cache: dict[str, object] = {}
 
 
+def _patch_torch_compat() -> None:
+    """Add torch.serialization.safe_globals no-op for torch < 2.4."""
+    import contextlib
+    import torch.serialization as _ts
+    if not hasattr(_ts, "safe_globals"):
+        @contextlib.contextmanager
+        def _safe_globals(_globals):
+            yield
+        _ts.safe_globals = _safe_globals  # type: ignore[attr-defined]
+
+
 def get_model(model_name: str):
     if model_name not in _model_cache:
         try:
@@ -21,6 +32,7 @@ def get_model(model_name: str):
                 "gigaam is required for the GigaAM backend. "
                 "Install with: pip install 'versascribe[gigaam]'"
             )
+        _patch_torch_compat()
         _model_cache[model_name] = gigaam.load_model(model_name)
     return _model_cache[model_name]
 
