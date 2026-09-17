@@ -113,7 +113,7 @@ def search_transcripts(
 
 
 def resolve_id(partial_id: str, storage_dir: Path) -> Path:
-    """Resolve a full or partial transcript ID to a Path."""
+    """Resolve a full or partial transcript ID to a single Path (error if ambiguous)."""
     candidates = list(storage_dir.glob(f"{partial_id}*.json"))
     if not candidates:
         raise FileNotFoundError(f"No transcript matching '{partial_id}'")
@@ -121,3 +121,11 @@ def resolve_id(partial_id: str, storage_dir: Path) -> Path:
         ids = ", ".join(p.stem for p in candidates)
         raise ValueError(f"Ambiguous ID '{partial_id}' matches: {ids}")
     return candidates[0]
+
+
+def resolve_all(partial_id: str, storage_dir: Path) -> list[Path]:
+    """Resolve a full or partial transcript ID to all matching Paths."""
+    candidates = list(storage_dir.glob(f"{partial_id}*.json"))
+    if not candidates:
+        raise FileNotFoundError(f"No transcript matching '{partial_id}'")
+    return candidates
