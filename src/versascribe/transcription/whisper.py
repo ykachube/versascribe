@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import os
-# Must be set before libiomp5 (PyTorch/functorch) and ctranslate2 are both
-# loaded in the same process, otherwise two OpenMP runtimes conflict and crash.
+# PyTorch (functorch) and ctranslate2 each bundle their own libiomp5.dylib.
+# When both are loaded in the same process:
+#   - KMP_DUPLICATE_LIB_OK=TRUE: prevents the second runtime from aborting on detection
+#   - OMP_NUM_THREADS=1: prevents __kmp_fork_barrier from spawning parallel threads,
+#     which is the actual crash site (SIGSEGV at 0x600 in __kmp_suspend_64)
+# Both must be set before either library is first imported.
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 from dataclasses import dataclass, field
 from pathlib import Path
