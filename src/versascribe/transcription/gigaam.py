@@ -24,16 +24,19 @@ def _patch_torch_compat() -> None:
 
 
 def _patch_hf_hub_compat() -> None:
-    """Rename use_auth_token -> token in hf_hub_download for huggingface_hub >= 0.20.
+    """Rename use_auth_token -> token everywhere for huggingface_hub >= 0.20.
 
     Older pyannote.audio calls hf_hub_download(use_auth_token=...) which was
-    removed; patch the function in-place so pyannote's internal calls still work.
+    removed. Patch the function in huggingface_hub itself and replace every
+    direct reference already bound in loaded modules (pyannote has several).
     """
+    import sys
     import functools
     import huggingface_hub as _hf
-    import pyannote.audio.core.pipeline as _pip
 
     _orig = _hf.hf_hub_download
+    if getattr(_orig, "_use_auth_patched", False):
+        return
 
     @functools.wraps(_orig)
     def _patched(*args, **kwargs):
@@ -41,9 +44,12 @@ def _patch_hf_hub_compat() -> None:
             kwargs.setdefault("token", kwargs.pop("use_auth_token"))
         return _orig(*args, **kwargs)
 
+    _patched._use_auth_patched = True  # type: ignore[attr-defined]
     _hf.hf_hub_download = _patched
-    if hasattr(_pip, "hf_hub_download"):
-        _pip.hf_hub_download = _patched
+
+    for mod in list(sys.modules.values()):
+        if mod is not None and getattr(mod, "hf_hub_download", None) is _orig:
+            mod.hf_hub_download = _patched
 
 
 def _patch_gigaam_vad() -> None:
@@ -95,9 +101,9 @@ def _diarize_with_pyannote(audio_path: Path, hf_token: str, num_speakers: Option
     from pyannote.audio import Pipeline
 
     os.environ["HF_TOKEN"] = hf_token
-    # Set env var so hf_hub_download picks it up automatically.
-    # Avoid passing use_auth_token/token directly: pyannote and huggingface_hub
-    # keep renaming the parameter across versions.
+    # Re-run the patch now that pyannote.audio sub-modules are fully loaded
+    # (they weren't imported yet when get_model first called _patch_hf_hub_compat).
+    _patch_hf_hub_compat()
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1")
     kwargs: dict = {}
     if num_speakers is not None:
