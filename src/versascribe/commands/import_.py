@@ -34,6 +34,7 @@ def import_file(
     tag: List[str] = typer.Option([], "--tag", help="Tag (repeatable)"),
     model: Optional[str] = typer.Option(None, "--model", help="Whisper model size"),
     backend: Optional[str] = typer.Option(None, "--backend", help="Transcription backend: whisper or gigaam"),
+    gigaam_model: Optional[str] = typer.Option(None, "--gigaam-model", help="GigaAM model (overrides config)"),
     language: Optional[str] = typer.Option(None, "--language", help="Force transcription language"),
     word_timestamps: bool = typer.Option(False, "--word-timestamps", help="Enable word-level timestamps"),
     diarize: bool = typer.Option(False, "--diarize", help="Identify speakers (requires whisperx + HF token)"),
@@ -92,9 +93,10 @@ def import_file(
         if effective_backend == "gigaam":
             from versascribe.transcription.gigaam import transcribe_audio_gigaam
             should_diarize = diarize or config.diarize_by_default
-            task_id = progress.add_task(f"Transcribing with GigaAM [{config.gigaam_model}]…", total=None)
+            effective_gigaam_model = gigaam_model or config.gigaam_model
+            task_id = progress.add_task(f"Transcribing with GigaAM [{effective_gigaam_model}]…", total=None)
             result = transcribe_audio_gigaam(
-                wav_path, config.gigaam_model, wt, config.hf_token,
+                wav_path, effective_gigaam_model, wt, config.hf_token,
                 diarize=should_diarize, num_speakers=num_speakers,
             )
         else:
