@@ -25,6 +25,7 @@ class TranscriptSegment(BaseModel):
     end: float
     text: str
     speaker: Optional[str] = None
+    note: Optional[str] = None
     avg_logprob: Optional[float] = None
     compression_ratio: Optional[float] = None
     no_speech_prob: Optional[float] = None
@@ -60,6 +61,7 @@ class TranscriptMetadata(BaseModel):
     tags: list[str] = Field(default_factory=list)
     language: Optional[str] = None
     whisper_model: Optional[str] = None
+    speaker_map: dict[str, str] = Field(default_factory=dict)
 
 
 class ActionItem(BaseModel):

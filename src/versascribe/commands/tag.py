@@ -23,6 +23,7 @@ def tag(
     remove_project: List[str] = typer.Option([], "--remove-project"),
     add_participant: List[str] = typer.Option([], "--add-participant"),
     remove_participant: List[str] = typer.Option([], "--remove-participant"),
+    map_speaker: List[str] = typer.Option([], "--map-speaker", help="SPEAKER_00=Name (repeatable)"),
     title: Optional[str] = typer.Option(None, "--title"),
 ) -> None:
     """Add or remove tags, projects, participants, or update title."""
@@ -40,6 +41,15 @@ def tag(
     meta.tags = _apply(meta.tags, add_tag, remove_tag)
     meta.project = _apply(meta.project, add_project, remove_project)
     meta.participants = _apply(meta.participants, add_participant, remove_participant)
+
+    for mapping in map_speaker:
+        if "=" not in mapping:
+            from versascribe.display import error_panel
+            error_panel(f"Invalid format: {mapping!r}  Expected SPEAKER_XX=Name")
+            raise typer.Exit(1)
+        label, _, name = mapping.partition("=")
+        meta.speaker_map[label.strip()] = name.strip()
+
     record.updated_at = datetime.now(timezone.utc)
 
     save_transcript(record, path)

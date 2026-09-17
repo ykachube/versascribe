@@ -87,6 +87,7 @@ def render_transcript_text(
     console.print()
 
     has_speakers = any(s.speaker for s in record.transcription.segments)
+    speaker_map = record.metadata.speaker_map
     _SPEAKER_COLORS = ["cyan", "magenta", "yellow", "green", "blue", "red"]
     speaker_colors: dict[str, str] = {}
 
@@ -95,11 +96,16 @@ def render_transcript_text(
             speaker_colors[label] = _SPEAKER_COLORS[len(speaker_colors) % len(_SPEAKER_COLORS)]
         return speaker_colors[label]
 
+    def _speaker_display(label: str) -> str:
+        return speaker_map.get(label, label)
+
     prev_speaker: str | None = None
     for seg in record.transcription.segments:
         speaker = seg.speaker
         if has_speakers and speaker and speaker != prev_speaker:
-            console.print(f"\n[bold {_speaker_color(speaker)}]{speaker}[/bold {_speaker_color(speaker)}]")
+            display = _speaker_display(speaker)
+            color = _speaker_color(speaker)
+            console.print(f"\n[bold {color}]{display}[/bold {color}]")
             prev_speaker = speaker
         if timestamps:
             m, s = divmod(int(seg.start), 60)

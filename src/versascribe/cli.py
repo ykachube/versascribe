@@ -45,6 +45,7 @@ from versascribe.commands.mom import mom                # noqa: E402
 from versascribe.commands.analyze import analyze        # noqa: E402
 from versascribe.commands.config import config_cmd      # noqa: E402
 from versascribe.commands.delete import delete          # noqa: E402
+from versascribe.commands.replay import replay          # noqa: E402
 
 app.command(name="record")(record)
 app.command(name="import")(import_file)
@@ -56,3 +57,4 @@ app.command(name="mom")(mom)
 app.command(name="analyze")(analyze)
 app.command(name="config")(config_cmd)
 app.command(name="delete")(delete)
+app.command(name="replay")(replay)
