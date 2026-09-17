@@ -23,6 +23,29 @@ def _patch_torch_compat() -> None:
         _ts.safe_globals = _safe_globals  # type: ignore[attr-defined]
 
 
+def _patch_hf_hub_compat() -> None:
+    """Rename use_auth_token -> token in hf_hub_download for huggingface_hub >= 0.20.
+
+    Older pyannote.audio calls hf_hub_download(use_auth_token=...) which was
+    removed; patch the function in-place so pyannote's internal calls still work.
+    """
+    import functools
+    import huggingface_hub as _hf
+    import pyannote.audio.core.pipeline as _pip
+
+    _orig = _hf.hf_hub_download
+
+    @functools.wraps(_orig)
+    def _patched(*args, **kwargs):
+        if "use_auth_token" in kwargs:
+            kwargs.setdefault("token", kwargs.pop("use_auth_token"))
+        return _orig(*args, **kwargs)
+
+    _hf.hf_hub_download = _patched
+    if hasattr(_pip, "hf_hub_download"):
+        _pip.hf_hub_download = _patched
+
+
 def _patch_gigaam_vad() -> None:
     """Fix gigaam's load_segmentation_model for pyannote>=3.1.
 
@@ -61,6 +84,7 @@ def get_model(model_name: str):
                 "Install with: pip install 'versascribe[gigaam]'"
             )
         _patch_torch_compat()
+        _patch_hf_hub_compat()
         _patch_gigaam_vad()
         _model_cache[model_name] = gigaam.load_model(model_name)
     return _model_cache[model_name]
