@@ -94,6 +94,13 @@ pip install 'versascribe[diarize]'
 
 This pulls in [WhisperX](https://github.com/m-bain/whisperX) and PyTorch (~2 GB total, one-time).
 
+> **torch 2.2.x users:** `transformers>=4.45` requires torch 2.5+ and disables PyTorch automatically when an older version is present, causing a `NameError: name 'torch' is not defined` crash. Pin it down:
+> ```bash
+> pip install "transformers<4.45"
+> ```
+
+> **Dual OpenMP crash (SIGSEGV/EXC_BAD_ACCESS):** PyTorch and faster-whisper (ctranslate2) each bundle their own `libiomp5.dylib`. When both are loaded in the same process, two OpenMP runtimes conflict and crash. VersaScribe sets `KMP_DUPLICATE_LIB_OK=TRUE` automatically before loading either library, so this should not require any manual workaround.
+
 ### 2. Get a HuggingFace token
 
 Diarization uses [pyannote.audio](https://github.com/pyannote/pyannote-audio), which requires accepting its license:

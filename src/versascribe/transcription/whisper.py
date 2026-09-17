@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import os
+# Must be set before libiomp5 (PyTorch/functorch) and ctranslate2 are both
+# loaded in the same process, otherwise two OpenMP runtimes conflict and crash.
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -137,7 +142,6 @@ def _transcribe_with_diarization(
     # Step 3: diarize
     # Set HF_TOKEN env var so pyannote/hf_hub_download picks it up;
     # avoid use_auth_token= which was removed in recent huggingface_hub.
-    import os
     os.environ["HF_TOKEN"] = hf_token
     diarize_model = whisperx.DiarizationPipeline(device=device)
     kwargs = {}
