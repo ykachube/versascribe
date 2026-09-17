@@ -175,15 +175,16 @@ This installs gigaam from GitHub, PyTorch (≥2.0), and pyannote.audio for long-
 
 ### 2. Set a HuggingFace token
 
-GigaAM's long-form transcription uses `pyannote/segmentation-3.0` for voice activity detection — the same token as speaker diarization.
+GigaAM uses pyannote models for both long-form transcription (VAD) and speaker diarization. Both require accepting the respective model licenses on HuggingFace.
 
-If you already set `hf_token` for diarization, no further action is needed.
+If you already set `hf_token` for Whisper diarization, no further action is needed.
 
 Otherwise:
 1. Create a free account at <https://huggingface.co>
 2. Generate a token at <https://hf.co/settings/tokens>
-3. Accept model terms at <https://hf.co/pyannote/segmentation-3.0>
-4. `vs config --set hf_token=hf_xxxxxxxxxxxxxxxx`
+3. Accept model terms at <https://hf.co/pyannote/segmentation-3.0> (VAD — required for longform)
+4. Accept model terms at <https://hf.co/pyannote/speaker-diarization-3.1> (required for `--diarize`)
+5. `vs config --set hf_token=hf_xxxxxxxxxxxxxxxx`
 
 Without an HF token, GigaAM falls back to single-chunk transcription (no segment timing), which works poorly for anything longer than a minute.
 

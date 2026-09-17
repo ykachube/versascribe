@@ -23,6 +23,10 @@ vs record --title "Board Meeting" --model large-v3
 # Use GigaAM backend (better for Russian; requires versascribe[gigaam])
 vs record --title "Team Sync" --backend gigaam
 
+# GigaAM with speaker diarization (requires hf_token + pyannote/speaker-diarization-3.1 gate)
+vs record --title "Team Sync" --backend gigaam --diarize
+vs record --title "Team Sync" --backend gigaam --diarize --num-speakers 3
+
 # Force transcription language (skip auto-detection, Whisper only)
 vs record --language en
 
@@ -49,6 +53,9 @@ vs import interview.mp3 --language en --model small
 
 # With GigaAM backend
 vs import meeting.mp4 --backend gigaam
+
+# GigaAM with speaker diarization
+vs import meeting.mp4 --backend gigaam --diarize --num-speakers 2
 
 # With speaker diarization
 vs import podcast.mp3 --diarize --num-speakers 3

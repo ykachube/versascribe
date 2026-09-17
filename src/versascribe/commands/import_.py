@@ -91,8 +91,12 @@ def import_file(
     with transcription_progress() as progress:
         if effective_backend == "gigaam":
             from versascribe.transcription.gigaam import transcribe_audio_gigaam
+            should_diarize = diarize or config.diarize_by_default
             task_id = progress.add_task(f"Transcribing with GigaAM [{config.gigaam_model}]…", total=None)
-            result = transcribe_audio_gigaam(wav_path, config.gigaam_model, wt, config.hf_token)
+            result = transcribe_audio_gigaam(
+                wav_path, config.gigaam_model, wt, config.hf_token,
+                diarize=should_diarize, num_speakers=num_speakers,
+            )
         else:
             from versascribe.transcription.whisper import transcribe_audio
             task_id = progress.add_task(f"Transcribing with Whisper [{model_size}]…", total=None)

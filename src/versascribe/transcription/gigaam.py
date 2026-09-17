@@ -66,11 +66,44 @@ def get_model(model_name: str):
     return _model_cache[model_name]
 
 
+def _diarize_with_pyannote(audio_path: Path, hf_token: str, num_speakers: Optional[int] = None):
+    """Run pyannote speaker diarization and return an Annotation object."""
+    from pyannote.audio import Pipeline
+
+    os.environ["HF_TOKEN"] = hf_token
+    pipeline = Pipeline.from_pretrained(
+        "pyannote/speaker-diarization-3.1",
+        use_auth_token=hf_token,
+    )
+    kwargs: dict = {}
+    if num_speakers is not None:
+        kwargs["num_speakers"] = num_speakers
+    return pipeline(str(audio_path), **kwargs)
+
+
+def _assign_speakers(segments: list, diarization) -> list:
+    """Assign the dominant speaker label to each segment by timestamp overlap."""
+    turns = list(diarization.itertracks(yield_label=True))
+    result = []
+    for seg in segments:
+        overlap: dict[str, float] = {}
+        for turn, _, speaker in turns:
+            lo = max(seg.start, turn.start)
+            hi = min(seg.end, turn.end)
+            if hi > lo:
+                overlap[speaker] = overlap.get(speaker, 0.0) + (hi - lo)
+        best = max(overlap, key=overlap.__getitem__) if overlap else None
+        result.append(seg.model_copy(update={"speaker": best}))
+    return result
+
+
 def transcribe_audio_gigaam(
     audio_path: Path,
     model_name: str = "v3_e2e_rnnt",
     word_timestamps: bool = False,
     hf_token: Optional[str] = None,
+    diarize: bool = False,
+    num_speakers: Optional[int] = None,
 ) -> TranscriptionResult:
     model = get_model(model_name)
     audio_str = str(audio_path)
@@ -91,6 +124,15 @@ def transcribe_audio_gigaam(
     else:
         text = str(model.transcribe(audio_str))
         segments = [TranscriptSegment(id=0, start=0.0, end=0.0, text=text)]
+
+    if diarize:
+        if not hf_token:
+            raise ValueError(
+                "hf_token is required for diarization. "
+                "Set it with: vs config --set hf_token=hf_..."
+            )
+        diarization = _diarize_with_pyannote(audio_path, hf_token, num_speakers)
+        segments = _assign_speakers(segments, diarization)
 
     full_text = " ".join(s.text.strip() for s in segments)
     lang = "multilingual" if "multilingual" in model_name else "ru"
