@@ -31,6 +31,7 @@ class TestBuildIndex:
         assert standup.title == "Daily Standup"
         assert "backend" in standup.project
         assert "Alice" in standup.participants
+        assert standup.audio_file == str((populated_storage / "audio/meeting.wav").resolve())
         assert not standup.has_mom
 
     def test_has_mom_detected(self, populated_storage) -> None:

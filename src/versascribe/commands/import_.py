@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -12,13 +13,13 @@ from versascribe.audio.extractor import extract_to_wav, needs_extraction
 from versascribe.context import get_config
 from versascribe.display import console, success, transcription_progress
 from versascribe.prompts import prompt_metadata
-from versascribe.storage.paths import new_transcript_path
+from versascribe.storage.paths import get_audio_dir, new_transcript_path
 from versascribe.storage.transcript import (
     AnalysisBlock,
     SourceInfo,
+    TranscriptionData,
     TranscriptMetadata,
     TranscriptRecord,
-    TranscriptionData,
     save_transcript,
 )
 
@@ -37,6 +38,11 @@ def import_file(
     gigaam_model: Optional[str] = typer.Option(None, "--gigaam-model", help="GigaAM model (overrides config)"),
     language: Optional[str] = typer.Option(None, "--language", help="Force transcription language"),
     word_timestamps: bool = typer.Option(False, "--word-timestamps", help="Enable word-level timestamps"),
+    link_audio: bool = typer.Option(
+        False,
+        "--link-audio",
+        help="Store the absolute source path instead of copying the audio",
+    ),
     diarize: bool = typer.Option(False, "--diarize", help="Identify speakers (requires whisperx + HF token)"),
     num_speakers: Optional[int] = typer.Option(None, "--num-speakers", help="Expected number of speakers"),
 ) -> None:
@@ -118,6 +124,17 @@ def import_file(
             pass
 
     transcript_path = new_transcript_path(config.storage_dir, meeting_title, now)
+    if link_audio:
+        relative_audio = str(path.resolve())
+    else:
+        audio_dir = get_audio_dir(config)
+        audio_suffix = ".wav" if extracted else path.suffix.lower()
+        stored_audio_path = audio_dir / f"{transcript_path.stem}{audio_suffix}"
+        if extracted:
+            shutil.move(str(wav_path), str(stored_audio_path))
+        else:
+            shutil.copy2(path, stored_audio_path)
+        relative_audio = str(stored_audio_path.relative_to(config.storage_dir))
 
     record_obj = TranscriptRecord(
         **{
@@ -130,6 +147,7 @@ def import_file(
                 type="import",
                 original_filename=path.name,
                 duration_seconds=duration_seconds,
+                audio_file=relative_audio,
                 sample_rate=16000,
                 channels=1,
             ),

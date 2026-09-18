@@ -132,6 +132,7 @@ class ReplayApp(App[bool]):
 
     BINDINGS = [
         Binding("q", "quit_save", "Quit & Save"),
+        Binding("backspace", "quit_save", "Back to List", show=False),
         Binding("space", "play_pause", "Play / Pause", priority=True),
         Binding("e", "edit_text", "Edit text"),
         Binding("s", "set_speaker", "Speaker"),
@@ -149,7 +150,9 @@ class ReplayApp(App[bool]):
 
     def _resolve_wav(self) -> Optional[Path]:
         if self._record.source.audio_file:
-            p = self._path.parent / self._record.source.audio_file
+            p = Path(self._record.source.audio_file)
+            if not p.is_absolute():
+                p = self._path.parent / p
             if p.exists():
                 return p
         return None

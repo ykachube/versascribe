@@ -15,6 +15,7 @@ from versascribe.storage.transcript import TranscriptRecord, load_transcript
 class IndexEntry:
     id: str
     path: Path
+    audio_file: Optional[str]
     created_at: datetime
     title: str
     project: list[str]
@@ -23,6 +24,15 @@ class IndexEntry:
     duration_seconds: float
     has_mom: bool
     full_text_preview: str = field(default="")
+
+
+def _absolute_audio_file(storage_dir: Path, audio_file: object) -> Optional[str]:
+    if not audio_file:
+        return None
+    audio_path = Path(str(audio_file))
+    if not audio_path.is_absolute():
+        audio_path = storage_dir / audio_path
+    return str(audio_path.resolve())
 
 
 def build_index(storage_dir: Path) -> list[IndexEntry]:
@@ -47,6 +57,7 @@ def build_index(storage_dir: Path) -> list[IndexEntry]:
                 IndexEntry(
                     id=data.get("id", p.stem),
                     path=p,
+                    audio_file=_absolute_audio_file(storage_dir, src.get("audio_file")),
                     created_at=created_at,
                     title=meta.get("title", p.stem),
                     project=meta.get("project", []),

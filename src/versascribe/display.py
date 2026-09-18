@@ -46,13 +46,14 @@ def render_transcript_table(entries: list["IndexEntry"]) -> None:
         console.print("[dim]No transcripts found.[/dim]")
         return
     table = Table(show_header=True, header_style="bold cyan", expand=True)
-    table.add_column("ID", style="dim", width=22, no_wrap=True)
+    table.add_column("ID", style="dim", overflow="fold")
     table.add_column("Date", width=12)
     table.add_column("Title", min_width=20)
     table.add_column("Project", width=16)
     table.add_column("Participants", width=20)
     table.add_column("Duration", width=8, justify="right")
     table.add_column("MoM", width=4, justify="center")
+    table.add_column("Audio file", overflow="fold")
 
     for e in entries:
         date_str = e.created_at.strftime("%Y-%m-%d")
@@ -61,13 +62,14 @@ def render_transcript_table(entries: list["IndexEntry"]) -> None:
         duration_str = _fmt_duration(e.duration_seconds) if e.duration_seconds else ""
         mom_str = "[green]✓[/green]" if e.has_mom else ""
         table.add_row(
-            e.id[:22],
+            e.id,
             date_str,
             e.title,
             project_str,
             participants_str,
             duration_str,
             mom_str,
+            e.audio_file or "",
         )
     console.print(table)
 

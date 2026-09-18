@@ -51,6 +51,9 @@ vs import recording.mp4
 vs import zoom_meeting.m4a --title "Client Review" --participant "Sarah" --project acme
 vs import interview.mp3 --language en --model small
 
+# Link the original file without copying it into ~/.versascribe/audio/
+vs import interview.mp3 --link-audio
+
 # With GigaAM backend
 vs import meeting.mp4 --backend gigaam
 
@@ -80,7 +83,13 @@ vs list --project backend --since 2024-01-01 --limit 20
 # Output formats
 vs list --format json                # machine-readable
 vs list --format ids                 # just IDs, useful for scripting
+
+# Interactive browser: select with arrows, Enter to replay
+vs list --interactive
 ```
+
+In interactive mode, press `Backspace` from replay to return to the list. Press
+`E` to rename the selected meeting or `D` to delete it and its managed audio.
 
 ---
 

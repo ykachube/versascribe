@@ -21,10 +21,12 @@ def _delete_one(path: Path, keep_audio: bool, storage_dir: Path) -> tuple[str, b
     record = load_transcript(path)
     audio_deleted = False
     if not keep_audio and record.source.audio_file:
-        audio_path = storage_dir / record.source.audio_file
-        if audio_path.exists():
-            audio_path.unlink(missing_ok=True)
-            audio_deleted = True
+        audio_path = Path(record.source.audio_file)
+        if not audio_path.is_absolute():
+            audio_path = storage_dir / audio_path
+            if audio_path.exists():
+                audio_path.unlink(missing_ok=True)
+                audio_deleted = True
     path.unlink(missing_ok=True)
     return record.id, audio_deleted
 

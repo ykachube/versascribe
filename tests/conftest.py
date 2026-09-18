@@ -53,8 +53,8 @@ def make_transcript_file(
         "updated_at": created_at,
         "source": {
             "type": "recording",
-            "original_filename": None,
-            "audio_file": None,
+            "original_filename": "meeting.wav",
+            "audio_file": "audio/meeting.wav",
             "duration_seconds": duration_seconds,
             "audio_device": "BlackHole 2ch",
             "sample_rate": 16000,

@@ -11,6 +11,7 @@ import typer
 from versascribe.context import get_config
 from versascribe.display import console, render_transcript_table
 from versascribe.storage.index import build_index, filter_transcripts
+from versascribe.storage.transcript import load_transcript
 
 
 def list_transcripts(
@@ -23,6 +24,9 @@ def list_transcripts(
     has_mom: Optional[bool] = typer.Option(None, "--has-mom/--no-mom", help="Filter by MoM presence"),
     limit: int = typer.Option(50, "--limit", "-n", help="Maximum results"),
     fmt: str = typer.Option("table", "--format", "-f", help="table|json|ids"),
+    interactive: bool = typer.Option(
+        False, "--interactive", "-i", help="Open the interactive transcript browser"
+    ),
 ) -> None:
     """List transcripts with optional filters."""
     config = get_config(ctx)
@@ -41,6 +45,17 @@ def list_transcripts(
         has_mom=has_mom,
     )[:limit]
 
+    if interactive:
+        from versascribe.replay.app import ReplayApp
+        from versascribe.replay.list_app import TranscriptListApp
+
+        while True:
+            selected_path = TranscriptListApp(config.storage_dir, entries).run()
+            if selected_path is None:
+                return
+            record = load_transcript(selected_path)
+            ReplayApp(record, selected_path).run()
+
     if fmt == "json":
         console.print_json(
             json.dumps(
@@ -54,6 +69,7 @@ def list_transcripts(
                         "tags": e.tags,
                         "duration_seconds": e.duration_seconds,
                         "has_mom": e.has_mom,
+                        "audio_file": e.audio_file,
                     }
                     for e in entries
                 ],
